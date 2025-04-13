@@ -4,7 +4,4 @@ numpy
 matplotlib
 plotly
 keras
-sklearn
-statsmodels
-ARIMA
-warnings
+scikit-learn
