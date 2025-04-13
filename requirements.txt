@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+matplotlib
+joblib
+plotly
+keras
+sklearn
+statsmodels
+warnings
