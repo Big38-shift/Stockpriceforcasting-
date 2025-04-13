@@ -6,4 +6,5 @@ plotly
 keras
 sklearn
 statsmodels
+ARIMA
 warnings
