@@ -53,7 +53,6 @@ def prepare_data(stock_name):
     scaled_data = scaler.fit_transform(detrended.reshape(-1, 1))  # Ensure it's 2D
     return scaled_data, trend_model, scaler
 
-
 def create_sequences(features, target, seq_length):
     X, y = [], []
     
@@ -114,12 +113,23 @@ def predict(stock_name):
         print(f"Error in prediction: {str(e)}")
         raise e
 
+# Run prediction for selected stock
+predicted_prices = predict(option)
+
 # Display prediction
 st.subheader(f"📊 Predicted {option} Stock Prices")
 st.write(predicted_prices)
 
 # Plotting
 fig, ax = plt.subplots(figsize=(12, 6))
+
+# Get real prices based on selected stock
+if option == "MasterCard":
+    real_prices = df['Close_M']
+else:
+    real_prices = df['Close_V']
+
+# Plot the real vs predicted prices
 ax.plot(real_prices.index, real_prices.values, label='Actual Prices')
 ax.plot(real_prices.index[-len(predicted_prices):], predicted_prices, label='Predicted Prices', color='green')
 ax.set_title(f"{option} Stock Price Prediction")
