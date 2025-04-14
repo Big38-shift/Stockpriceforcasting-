@@ -1,66 +1,101 @@
-# app.py
-
 import streamlit as st
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
-import datetime
+from sklearn.linear_model import LinearRegression
 
-st.title("📊 LSTM Stock Price Forecast")
-st.markdown("Forecast future stock prices for **MasterCard** or **Visa** using a trained LSTM model.")
+# Set page config
+st.set_page_config(page_title="Stock Price Predictor", layout="wide")
 
-# Load models
-stock_choice = st.selectbox("Choose a Stock:", ["MasterCard", "Visa"])
-days_to_predict = st.sidebar.slider("Days to Forecast:", 1, 30, 7)
+# Title
+st.title("📈 Stock Price Prediction with LSTM")
 
-if stock_choice == "MasterCard":
-    model = load_model("mastercard_lstm_model.keras")
-    csv_file = "MVS.csv"  # Make sure this file has the original closing prices used in training
-else:
-    model = load_model("visa_lstm_model.keras")
-    csv_file = "MVS.csv"
+# Sidebar
+st.sidebar.title("Options")
+option = st.sidebar.selectbox("Select Stock", ("MasterCard", "Visa"))
 
-# Load CSV data used during training
-df = pd.read_csv(csv_file, parse_dates=True)
-df = df.sort_index(ascending=True)
+# Load saved models
+@st.cache_resource
+def load_models():
+    model_m = load_model('mastercard_model.keras')
+    model_v = load_model('visa_model.keras')
+    return model_m, model_v
 
-# Only use 'Close' column
-close_data = df["Close"].values.reshape(-1, 1)
+model_m, model_v = load_models()
 
-# Scale data
-scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(close_data)
+# Load data
+@st.cache_data
+def load_data():
+    df = pd.read_csv('MVS.csv')
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    return df
 
-# Get last 60 time steps
-sequence_length = 60
-input_seq = scaled_data[-sequence_length:]
-input_seq = input_seq.reshape(1, sequence_length, 1)
+df = load_data()
+
+# Detrend helper
+def detrend_data(prices):
+    X = np.arange(len(prices)).reshape(-1, 1)
+    y = prices.values
+    trend_model = LinearRegression().fit(X, y)
+    trend = trend_model.predict(X)
+    detrended = y - trend
+    return detrended, trend_model
+
+# Prepare data
+def prepare_data(stock_name):
+    stock_data = df[stock_name]
+    detrended, trend_model = detrend_data(stock_data)
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(detrended.reshape(-1, 1))
+    return scaled_data, trend_model, scaler
+
+# Create LSTM sequences
+def create_sequences(features, seq_length):
+    X = []
+    for i in range(len(features) - seq_length):
+        X.append(features[i:i + seq_length])
+    return np.array(X)
 
 # Predict future prices
-predictions = []
-current_seq = input_seq
+def predict(stock_name):
+    if stock_name == "MasterCard":
+        scaled_data, trend_model, scaler = prepare_data('Close_M')
+        model = model_m
+        real_prices = df['Close_M']
+    else:
+        scaled_data, trend_model, scaler = prepare_data('Close_V')
+        model = model_v
+        real_prices = df['Close_V']
+    
+    seq_length = 60
+    X = create_sequences(scaled_data, seq_length)
+    
+    predicted_detrended = model.predict(X)
+    predicted_detrended = scaler.inverse_transform(predicted_detrended)
 
-for _ in range(days_to_predict):
-    pred = model.predict(current_seq, verbose=0)[0][0]
-    predictions.append(pred)
-    current_seq = np.append(current_seq[:, 1:, :], [[[pred]]], axis=1)
+    # Forecast time alignment
+    future_X = np.arange(len(scaled_data) - len(predicted_detrended), len(scaled_data)).reshape(-1, 1)
+    trend = trend_model.predict(future_X)
 
-# Inverse scale predictions
-predicted_prices = scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
+    predicted_prices = predicted_detrended.flatten() + trend
+    return predicted_prices, real_prices
 
-# Create future dates
-last_date = pd.to_datetime(df.index[-1] if df.index.dtype == 'datetime64[ns]' else datetime.datetime.today())
-future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days_to_predict)
+# Run prediction
+predicted_prices, real_prices = predict(option)
 
-# Prepare prediction DataFrame
-pred_df = pd.DataFrame({
-    "Date": future_dates,
-    "Predicted Close": predicted_prices.flatten()
-}).set_index("Date")
+# Display prediction
+st.subheader(f"📊 Predicted {option} Stock Prices")
+st.write(predicted_prices)
 
-# Show chart and table
-st.write(f"### {stock_choice} {days_to_predict}-Day Forecast")
-st.line_chart(pred_df)
-st.dataframe(pred_df)
+# Plotting
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(real_prices.index, real_prices.values, label='Actual Prices')
+ax.plot(real_prices.index[-len(predicted_prices):], predicted_prices, label='Predicted Prices', color='green')
+ax.set_title(f"{option} Stock Price Prediction")
+ax.set_xlabel("Date")
+ax.set_ylabel("Price (USD)")
+ax.legend()
+st.pyplot(fig)
