@@ -54,14 +54,19 @@ def prepare_data(stock_name):
     return scaled_data, trend_model, scaler
 
 
-# Create LSTM sequences
-def create_sequences(features, seq_length):
-    X = []
+def create_sequences(features, target, seq_length):
+    X, y = [], []
+    
+    # Debugging: Print shapes of input features and target
+    print(f"Features shape: {features.shape}")
+    print(f"Target shape: {target.shape}")
+    
     for i in range(len(features) - seq_length):
         X.append(features[i:i + seq_length])
-    return np.array(X)
+        y.append(target[i + seq_length])
+    
+    return np.array(X), np.array(y)
 
-# Predict future prices
 def predict(stock_name):
     if stock_name == "MasterCard":
         scaled_data, trend_model, scaler = prepare_data('Close_M')
@@ -76,8 +81,9 @@ def predict(stock_name):
     if len(scaled_data.shape) == 1:
         scaled_data = scaled_data.reshape(-1, 1)  # Reshape to 2D if it's 1D
     
-    print(f"scaled_data shape: {scaled_data.shape}")  # Debugging step
-
+    # Debugging: Check the shape of scaled_data before passing to create_sequences
+    print(f"scaled_data shape before passing to create_sequences: {scaled_data.shape}")
+    
     X, _ = create_sequences(scaled_data, scaled_data, seq_length)
     
     # Reshape to (samples, time_steps, features)
@@ -93,6 +99,7 @@ def predict(stock_name):
     
     predicted_prices = predicted_detrended.flatten() + trend
     return predicted_prices
+
 
 
 # Run prediction
