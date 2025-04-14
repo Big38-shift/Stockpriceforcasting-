@@ -45,13 +45,14 @@ def detrend_data(prices):
     detrended = y - trend
     return detrended, trend_model
 
-# Prepare data
 def prepare_data(stock_name):
     stock_data = df[stock_name]
+    # Detrend, scale and prepare sequences
     detrended, trend_model = detrend_data(stock_data)
     scaler = MinMaxScaler()
-    scaled_data = scaler.fit_transform(detrended.reshape(-1, 1))
+    scaled_data = scaler.fit_transform(detrended.reshape(-1, 1))  # Ensure it's 2D
     return scaled_data, trend_model, scaler
+
 
 # Create LSTM sequences
 def create_sequences(features, seq_length):
@@ -70,10 +71,14 @@ def predict(stock_name):
         model = model_v
     
     seq_length = 60  # Sequence length for LSTM
+    
+    # Ensure scaled_data is 2D before creating sequences
+    scaled_data = scaled_data.reshape(-1, 1)  # Reshape if it's not already 2D
+    
     X, _ = create_sequences(scaled_data, scaled_data, seq_length)
     
-    # Reshaping to match the LSTM input shape
-    X = X.reshape(X.shape[0], X.shape[1], 1)  # Reshape to (samples, time_steps, features)
+    # Reshape to (samples, time_steps, features)
+    X = X.reshape(X.shape[0], X.shape[1], 1)  # Reshape for LSTM input
     
     # Predict the stock price
     predicted_detrended = model.predict(X)
