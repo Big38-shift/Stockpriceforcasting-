@@ -86,11 +86,18 @@ def predict(stock_name):
     
     X, _ = create_sequences(scaled_data, scaled_data, seq_length)
     
-    # Reshape to (samples, time_steps, features)
+    # Reshape to (samples, time_steps, features) for LSTM input
     X = X.reshape(X.shape[0], X.shape[1], 1)  # Reshape for LSTM input
+    
+    # Debugging: Check shape of X before passing to model.predict
+    print(f"X shape before prediction: {X.shape}")
     
     # Predict the stock price
     predicted_detrended = model.predict(X)
+    
+    # Debugging: Check the shape of predicted_detrended
+    print(f"predicted_detrended shape: {predicted_detrended.shape}")
+    
     predicted_detrended = scaler.inverse_transform(predicted_detrended)
     
     # Create future time steps to add the trend
@@ -99,7 +106,6 @@ def predict(stock_name):
     
     predicted_prices = predicted_detrended.flatten() + trend
     return predicted_prices
-
 
 
 # Run prediction
