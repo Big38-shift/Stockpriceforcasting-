@@ -16,10 +16,10 @@ stock_choice = st.selectbox("Choose a Stock:", ["MasterCard", "Visa"])
 days_to_predict = st.sidebar.slider("Days to Forecast:", 1, 30, 7)
 
 if stock_choice == "MasterCard":
-    model = load_model("mastercard_lstm_model.h5")
+    model = load_model("mastercard_lstm_model.keras")
     csv_file = "MVS.csv"  # Make sure this file has the original closing prices used in training
 else:
-    model = load_model("visa_lstm_model.h5")
+    model = load_model("visa_lstm_model.keras")
     csv_file = "MVS.csv"
 
 # Load CSV data used during training
