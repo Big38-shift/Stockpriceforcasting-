@@ -73,8 +73,11 @@ def predict(stock_name):
     seq_length = 60  # Sequence length for LSTM
     
     # Ensure scaled_data is 2D before creating sequences
-    scaled_data = scaled_data.reshape(-1, 1)  # Reshape if it's not already 2D
+    if len(scaled_data.shape) == 1:
+        scaled_data = scaled_data.reshape(-1, 1)  # Reshape to 2D if it's 1D
     
+    print(f"scaled_data shape: {scaled_data.shape}")  # Debugging step
+
     X, _ = create_sequences(scaled_data, scaled_data, seq_length)
     
     # Reshape to (samples, time_steps, features)
