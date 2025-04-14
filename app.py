@@ -65,24 +65,27 @@ def predict(stock_name):
     if stock_name == "MasterCard":
         scaled_data, trend_model, scaler = prepare_data('Close_M')
         model = model_m
-        real_prices = df['Close_M']
     else:
         scaled_data, trend_model, scaler = prepare_data('Close_V')
         model = model_v
-        real_prices = df['Close_V']
     
-    seq_length = 60
-    X = create_sequences(scaled_data, seq_length)
+    seq_length = 60  # Sequence length for LSTM
+    X, _ = create_sequences(scaled_data, scaled_data, seq_length)
     
+    # Reshaping to match the LSTM input shape
+    X = X.reshape(X.shape[0], X.shape[1], 1)  # Reshape to (samples, time_steps, features)
+    
+    # Predict the stock price
     predicted_detrended = model.predict(X)
     predicted_detrended = scaler.inverse_transform(predicted_detrended)
-
-    # Forecast time alignment
-    future_X = np.arange(len(scaled_data) - len(predicted_detrended), len(scaled_data)).reshape(-1, 1)
+    
+    # Create future time steps to add the trend
+    future_X = np.arange(len(scaled_data), len(scaled_data) + len(predicted_detrended)).reshape(-1, 1)
     trend = trend_model.predict(future_X)
-
+    
     predicted_prices = predicted_detrended.flatten() + trend
-    return predicted_prices, real_prices
+    return predicted_prices
+
 
 # Run prediction
 predicted_prices, real_prices = predict(option)
