@@ -84,7 +84,11 @@ def predict(stock_name):
     # Debugging: Check the shape of scaled_data before passing to create_sequences
     print(f"scaled_data shape before passing to create_sequences: {scaled_data.shape}")
     
+    # Create sequences
     X, _ = create_sequences(scaled_data, scaled_data, seq_length)
+    
+    # Debugging: Check the shape of X after creating sequences
+    print(f"X shape after create_sequences: {X.shape}")
     
     # Reshape to (samples, time_steps, features) for LSTM input
     X = X.reshape(X.shape[0], X.shape[1], 1)  # Reshape for LSTM input
@@ -92,24 +96,23 @@ def predict(stock_name):
     # Debugging: Check shape of X before passing to model.predict
     print(f"X shape before prediction: {X.shape}")
     
-    # Predict the stock price
-    predicted_detrended = model.predict(X)
+    try:
+        # Predict the stock price
+        predicted_detrended = model.predict(X)
+        print(f"predicted_detrended shape: {predicted_detrended.shape}")
+        
+        predicted_detrended = scaler.inverse_transform(predicted_detrended)
+        
+        # Create future time steps to add the trend
+        future_X = np.arange(len(scaled_data), len(scaled_data) + len(predicted_detrended)).reshape(-1, 1)
+        trend = trend_model.predict(future_X)
+        
+        predicted_prices = predicted_detrended.flatten() + trend
+        return predicted_prices
     
-    # Debugging: Check the shape of predicted_detrended
-    print(f"predicted_detrended shape: {predicted_detrended.shape}")
-    
-    predicted_detrended = scaler.inverse_transform(predicted_detrended)
-    
-    # Create future time steps to add the trend
-    future_X = np.arange(len(scaled_data), len(scaled_data) + len(predicted_detrended)).reshape(-1, 1)
-    trend = trend_model.predict(future_X)
-    
-    predicted_prices = predicted_detrended.flatten() + trend
-    return predicted_prices
-
-
-# Run prediction
-predicted_prices, real_prices = predict(option)
+    except Exception as e:
+        print(f"Error in prediction: {str(e)}")
+        raise e
 
 # Display prediction
 st.subheader(f"📊 Predicted {option} Stock Prices")
