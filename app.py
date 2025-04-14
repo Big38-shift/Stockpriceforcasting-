@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
+from tensorflow.keras.losses import MeanSquaredError, MeanAbsoluteError
 
 # Set page config
 st.set_page_config(page_title="Stock Price Predictor", layout="wide")
@@ -19,8 +20,8 @@ option = st.sidebar.selectbox("Select Stock", ("MasterCard", "Visa"))
 # Load saved models
 @st.cache_resource
 def load_models():
-    model_m = load_model('mastercard_model.keras')
-    model_v = load_model('visa_model.keras')
+    model_m = load_model('mastercard_model.keras', custom_objects={"mse": MeanSquaredError(), "mae": MeanAbsoluteError()})
+    model_v = load_model('visa_model.keras' ,custom_objects={"mse": MeanSquaredError(), "mae": MeanAbsoluteError()})
     return model_m, model_v
 
 model_m, model_v = load_models()
